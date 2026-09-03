@@ -49,6 +49,29 @@ export interface Student {
   enrollments?: StudentEnrollment[];
 }
 
+export interface TeacherSubject {
+  id: string;
+  name: string;
+  code: string;
+  class: StudentClassRef | null;
+}
+
+export interface TeacherClass {
+  id: string;
+  name: string;
+}
+
+export interface Teacher {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  createdAt: string;
+  updatedAt: string;
+  subjects?: TeacherSubject[];
+  classes?: TeacherClass[];
+}
+
 export interface PaginationMeta {
   total: number;
   page: number;

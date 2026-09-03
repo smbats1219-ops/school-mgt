@@ -28,7 +28,7 @@ interface NavItem {
 const mainNav: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/student", label: "Student", icon: Boxes },
-  // { href: "/suppliers", label: "Suppliers", icon: Truck },
+  { href: "/teacher", label: "Teacher", icon: BriefcaseBusiness },
   // { href: "/traders", label: "Traders", icon: BriefcaseBusiness },
 ];
 

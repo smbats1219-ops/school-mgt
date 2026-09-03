@@ -10,6 +10,16 @@ export const studentKeys = {
   detail: (id: string) => [...studentKeys.all, "detail", id] as const,
 };
 
+export const teacherKeys = {
+  all: ["teachers"] as const,
+  list: (params?: { page?: number; limit?: number; search?: string }) => [
+    ...teacherKeys.all,
+    "list",
+    params,
+  ] as const,
+  detail: (id: string) => [...teacherKeys.all, "detail", id] as const,
+};
+
 export const userKeys = {
   all: ["users"] as const,
   list: (params?: { page?: number; limit?: number; search?: string; status?: UserStatus }) =>
