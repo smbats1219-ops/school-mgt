@@ -1,0 +1,57 @@
+# Dependencies
+**/node_modules/
+**/.pnp
+**/.pnp.*
+**/.yarn/*
+!.yarn/patches/
+!.yarn/plugins/
+!.yarn/releases/
+!.yarn/versions/
+
+# Framework and build output
+**/.next/
+**/out/
+**/dist/
+**/build/
+
+# Test and coverage output
+**/coverage/
+**/.nyc_output/
+
+# Environment files and secrets
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.sample
+**/*.pem
+
+# Logs and runtime data
+**/*.log
+**/logs/
+**/.temp/
+**/.tmp/
+**/pids/
+**/*.pid
+**/*.pid.lock
+**/*.seed
+**/report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Next.js and deployment tooling
+**/.vercel/
+**/*.tsbuildinfo
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+**/.idea/
+**/.project
+**/.classpath
+**/.settings/
+**/.c9/
+**/*.launch
+**/*.sublime-workspace
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json

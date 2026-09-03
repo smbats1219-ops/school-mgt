@@ -1,0 +1,316 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==================== ENUMS ====================
+
+enum UserStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum EntryStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum PaymentStatus {
+  PAID
+  PARTIAL
+  PENDING
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CHECK
+}
+
+enum LogType {
+  ERROR
+  ACTION
+  JOB
+  SECURITY
+  PERFORMANCE
+  AUDIT
+}
+
+// ==================== CORE: USER MANAGEMENT ====================
+
+model User {
+  id                  String     @id @default(uuid()) @db.Uuid
+  username            String     @unique
+  email               String?    @unique
+  passwordHash        String
+  fullName            String
+  phoneNumber         String?
+  profilePictureUrl   String?
+  status              UserStatus @default(PENDING)
+  lastLoginAt         DateTime?
+  failedLoginAttempts Int        @default(0)
+  isPasswordChanged   Boolean    @default(false)
+  passwordChangedAt   DateTime?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  // Auth Relations
+  userRoles           UserRole[]
+  uploadedAttachments Attachment[]     @relation("AttachmentUploader")
+  rolePermissions     RolePermission[]
+  userRoleAssignments UserRole[]       @relation("UserRoleAssigner")
+  // Audit
+  userLogs            UserLogs[]
+
+  @@unique([email, username])
+  @@index([fullName])
+  @@index([status])
+  @@map("users")
+}
+
+model Role {
+  id           String      @id @default(uuid()) @db.Uuid
+  role_key     String      @unique
+  name         String      @unique
+  description  String?
+  isSystemRole Boolean     @default(false)
+  status       EntryStatus @default(ACTIVE)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@index([role_key, status])
+  @@map("roles")
+}
+
+model PermissionModule {
+  id          String   @id @default(uuid()) @db.Uuid
+  moduleKey   String   @unique
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permission Permission[]
+
+  @@index([moduleKey, name])
+  @@map("permission_modules")
+}
+
+model Permission {
+  id            String      @id @default(uuid()) @db.Uuid
+  permissionKey String      @unique
+  name          String      @unique
+  description   String?
+  status        EntryStatus @default(ACTIVE)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  moduleId         String           @db.Uuid
+  permissionModule PermissionModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  rolePermissions  RolePermission[]
+
+  @@index([permissionKey, name])
+  @@map("permissions")
+}
+
+model UserRole {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @db.Uuid
+  roleId       String    @db.Uuid
+  assignedById String    @db.Uuid
+  assignedAt   DateTime  @default(now())
+  expiresAt    DateTime?
+
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  assignedBy User @relation("UserRoleAssigner", fields: [assignedById], references: [id])
+
+  @@unique([userId, roleId])
+  @@index([userId, roleId])
+  @@index([expiresAt])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  id           String   @id @default(uuid()) @db.Uuid
+  roleId       String   @db.Uuid
+  permissionId String   @db.Uuid
+  grantedById  String   @db.Uuid
+  grantedAt    DateTime @default(now())
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  grantedBy  User       @relation(fields: [grantedById], references: [id])
+
+  @@unique([roleId, permissionId])
+  @@index([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model Attachment {
+  id        String   @id @default(uuid()) @db.Uuid
+  filename  String
+  mimeType  String?
+  size      Int?
+  url       String
+  createdAt DateTime @default(now())
+
+  uploaderId String @db.Uuid
+  uploader   User   @relation("AttachmentUploader", fields: [uploaderId], references: [id], onDelete: Cascade)
+
+  @@index([uploaderId])
+  @@map("attachments")
+}
+
+// ==================== CORE: AUDIT LOGS ====================
+
+model UserLogs {
+  id          String   @id @default(uuid()) @db.Uuid
+  actorId     String   @db.Uuid
+  logType     LogType
+  message     String   @db.VarChar(500)
+  description String?  @db.Text
+  ipAddress   String?  @db.VarChar(45)
+  userAgent   String?  @db.Text
+  changesFrom Json?
+  changesTo   Json?
+  endpoint    String?  @db.VarChar(255)
+  statusCode  Int?
+  duration    Int?
+  timestamp   DateTime @default(now())
+
+  browser String? @db.VarChar(100)
+  os      String? @db.VarChar(100)
+  device  String? @db.VarChar(100)
+  country String? @db.VarChar(2)
+
+  actor User @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([actorId])
+  @@index([logType])
+  @@index([timestamp])
+  @@index([ipAddress])
+  @@index([browser])
+  @@index([statusCode])
+  @@map("user_logs")
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  WITHDRAWN
+  SUSPENDED
+}
+
+model Student {
+  id          String       @id @default(uuid())
+  firstName   String
+  lastName    String
+  email       String       @unique
+  dateOfBirth DateTime
+  enrollments Enrollment[]
+  grades      Grade[]
+  attendances Attendance[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("students")
+}
+
+model Teacher {
+  id        String    @id @default(uuid())
+  firstName String
+  lastName  String
+  email     String    @unique
+  subjects  Subject[]
+  classes   Class[]   @relation("ClassTeacher")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("teachers")
+}
+
+model Class {
+  id          String       @id @default(uuid())
+  name        String // e.g., "Grade 10-A"
+  teacherId   String?
+  teacher     Teacher?     @relation("ClassTeacher", fields: [teacherId], references: [id])
+  enrollments Enrollment[]
+  subjects    Subject[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("classes")
+}
+
+model Enrollment {
+  id           String           @id @default(uuid())
+  studentId    String
+  student      Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  classId      String
+  class        Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  academicYear String // e.g., "2025-2026"
+  status       EnrollmentStatus @default(ACTIVE)
+  enrolledAt   DateTime         @default(now())
+
+  @@unique([studentId, classId, academicYear])
+  @@map("enrollments")
+}
+
+model Subject {
+  id        String   @id @default(uuid())
+  name      String // e.g., "Mathematics"
+  code      String   @unique // e.g., "MATH101"
+  classId   String
+  class     Class    @relation(fields: [classId], references: [id])
+  teacherId String?
+  teacher   Teacher? @relation(fields: [teacherId], references: [id])
+  grades    Grade[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("subjects")
+}
+
+model Grade {
+  id        String   @id @default(uuid())
+  score     Float
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subjectId String
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("grades")
+}
+
+model Attendance {
+  id        String           @id @default(uuid())
+  date      DateTime
+  status    AttendanceStatus @default(PRESENT)
+  studentId String
+  student   Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@unique([studentId, date])
+  @@map("attendances")
+}
